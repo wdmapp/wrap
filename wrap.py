@@ -72,7 +72,7 @@ pmpi_init_bindings = ["PMPI_INIT", "pmpi_init", "pmpi_init_", "pmpi_init__"]
 # In general, all MPI calls we care about return int.  We include double
 # to grab MPI_Wtick and MPI_Wtime, but we'll ignore the f2c and c2f calls
 # that return MPI_Datatypes and other such things.
-# MPI_Aint_add and MPI_Aint_diff return MPI_Aint, so include that too. 
+# MPI_Aint_add and MPI_Aint_diff return MPI_Aint, so include that too.
 rtypes = ['int', 'double', 'MPI_Aint' ]
 
 # If we find these strings in a declaration, exclude it from consideration.
@@ -773,7 +773,11 @@ def write_fortran_wrappers(out, decl, return_val):
             if not arg.isHandle():
                 # Non-MPI handle pointer types can be passed w/o dereferencing, but need to
                 # cast to correct pointer type first (from MPI_Fint*).
-                call.addActual("(%s)%s" % (arg.castType(), arg.name))
+                if arg.castType() in ("void*", "const void*"):
+                    call.addActualMPICH("(%s)%s" % (arg.castType(), arg.name))
+                    call.addActualMPI2("(%s)buffer_f2c(%s)" % (arg.castType(), arg.name))
+                else:
+                    call.addActual("(%s)%s" % (arg.castType(), arg.name))
             else:
                 # For MPI-1, assume ints, cross fingers, and pass things straight through.
                 call.addActualMPICH("(%s*)%s" % (arg.type, arg.name))
